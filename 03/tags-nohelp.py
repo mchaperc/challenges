@@ -1,22 +1,27 @@
+from collections import Counter
+from difflib import SequenceMatcher
+
+import feedparser
+
 TOP_NUMBER = 10
-RSS_FEED = 'rss.xml'
+RSS_FEED = feedparser.parse('https://pybit.es/feeds/all.rss.xml')
 SIMILAR = 0.87
 
 
 def get_tags():
-    """Find all tags in RSS_FEED.
-    Replace dash with whitespace."""
-    pass
-
+    return Counter([tag['term'] for entry in RSS_FEED.entries for tag in entry['tags']])
 
 def get_top_tags(tags):
-    """Get the TOP_NUMBER of most common tags"""
-    pass
+    return tags.most_common(TOP_NUMBER)
 
 
 def get_similarities(tags):
-    """Find set of tags pairs with similarity ratio of > SIMILAR"""
-    pass
+    similar_tags = {}
+    for tag in tags:
+        for nested_tag in tags:
+            if tag != nested_tag and SequenceMatcher(None, tag, nested_tag).ratio() >= SIMILAR and tag not in similar_tags and nested_tag not in similar_tags:
+                similar_tags[tag] = nested_tag
+    return similar_tags
 
 
 if __name__ == "__main__":
