@@ -25,12 +25,12 @@ class UserTweets(object):
 
     def get_all_tweets_for_handle(self, handle='', max_id=None):
         if max_id:
-            return self.API.user_timeline(self.API.get_user(handle)._json['id'], count=100, max_id=max_id)    
-        return self.API.user_timeline(self.API.get_user(handle)._json['id'], count=100)
+            return self.API.user_timeline(self.API.get_user(handle)._json['id'], count=NUM_TWEETS, max_id=max_id)    
+        return self.API.user_timeline(self.API.get_user(handle)._json['id'], count=NUM_TWEETS)
 
     def generate_csv_from_tweets(self, handle=''):
         keys = self.tweets[0]._json.keys()
-        with open(f"data/{handle}.csv", 'w') as output_file:
+        with open(f"{DEST_DIR}/{handle}.{EXT}", 'w') as output_file:
             dict_writer = csv.DictWriter(output_file, keys, extrasaction='ignore')
             dict_writer.writeheader()
             for tweet in self.tweets:
