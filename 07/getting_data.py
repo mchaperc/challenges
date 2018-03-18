@@ -7,45 +7,65 @@
 import json
 import sys
 import time
+import tweepy
+import tokenize
 
+from collections import Counter
+from tweepy import OAuthHandler
 from twython import TwythonStreamer
+from nltk.tokenize import RegexpTokenizer
+from nltk.corpus import stopwords
+from textblob import TextBlob
 
 from config import CONSUMER_KEY, CONSUMER_SECRET
 from config import ACCESS_TOKEN, ACCESS_SECRET
 
+TWEET_TOPIC = sys.argv[1]
 MAX_TWEETS = 1000
 OUTPUT = 'data_{}.json'.format(int(time.time()))
 
+auth = OAuthHandler(CONSUMER_KEY, CONSUMER_SECRET)
+auth.set_access_token(ACCESS_TOKEN, ACCESS_SECRET)
+ 
+api = tweepy.API(auth)
 
-class MyStreamer(TwythonStreamer):
-    """our own subclass of TwythonStreamer that specifies
-    how to interact with the stream"""
-    count = 0
+stop_words = set(stopwords.words('english'))
+tokenizer = RegexpTokenizer(r'\w+')
 
-    def on_success(self, data):
-        """what do we do when twitter sends us data?
-        here data will be a Python object representing a tweet"""
 
-        # only want to collect English-language tweets
-        if data['lang'] == 'en':
-            print(data)
-            with open(OUTPUT, 'a') as f:
-                f.write(json.dumps(data) + '\n')
-            self.count += 1
+def get_tweets_by_search_term(term=""):
+    if not term:
+        return []
+    return tweepy.Cursor(api.search, q=term).items(MAX_TWEETS)
 
-        # stop when we've collected enough
-        if self.count >= MAX_TWEETS:
-            self.disconnect()
 
-    def on_error(self, status_code, data):
-        print(status_code, data)
-        self.disconnect()
+def get_sentiment_of_tweets(tweets=[]):
+    tweet_polarity = []
+    for tweet in tweets:
+        blob = TextBlob(tweet)
+        tweet_polarity.append(blob.sentiment.polarity)
+    return tweet_polarity
+
+
+def determine_overall_sentiment(sentiments=[]):
+    overall_sentiment = 0
+    for sentiment in sentiments:
+        overall_sentiment += sentiment
+    return overall_sentiment / len(sentiments)
+
+
+def tokenize_user_tweets(tweets=[]):
+    sanitized_tweets = []
+    for tweet in tweets:
+        sanitized_tweet = []
+        for word in tweet._json['text'].split(' '):
+            if word.isalpha() and word.find('http') == -1 and word not in stop_words and len(word) > 2:
+                sanitized_tweet.append(word)
+        sanitized_tweets.append(' '.join(sanitized_tweet))
+    return sanitized_tweets
 
 
 if __name__ == "__main__":
     keywords_and = ' '.join(sys.argv[1:])
 
-    stream = MyStreamer(CONSUMER_KEY, CONSUMER_SECRET,
-                        ACCESS_TOKEN, ACCESS_SECRET)
-
-    stream.statuses.filter(track=keywords_and)
+    print(determine_overall_sentiment(get_sentiment_of_tweets(tokenize_user_tweets(get_tweets_by_search_term(TWEET_TOPIC)))))
