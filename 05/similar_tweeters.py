@@ -36,4 +36,4 @@ if __name__ == "__main__":
         sys.exit(1)
 
     user1, user2 = sys.argv[1:3]
-    similar_tweeters(user1, user2)
+    print(similar_tweeters(user1, user2))
